@@ -6,14 +6,31 @@ var request = require('./request');
 var config = require('./config');
 var Graph = require('./graph');
 
-function Page(pathname) {
+function Page(pathname, queryString) {
     this.graph = new Graph();
+    this.filters = this.parseFilters(queryString);
+    this.setType(pathname);
+}
+
+Page.prototype.graphWithFilters = function () {
+    return this.graph.withFilters(this.filters);
+};
+
+Page.prototype.setType = function (pathname) {
     var components = pathname.substring(1).split('/');
     var previousComponent = null;
     while (components.length) {
         var component = components.pop();
+        if (component === 'assigned') {
+            this.filters.assignee = new Set([previousComponent]);
+            continue;
+        }
 
         this.isPullRequests = component === 'pulls';
+        if (previousComponent !== null && !this.filters.assignee) {
+            this.filters.author = new Set([previousComponent]);
+        }
+
         this.isSinglePullRequest = component === 'pull';
         if (this.isPullRequests || this.isSinglePullRequest) {
             if (this.isSinglePullRequest) {
@@ -29,7 +46,34 @@ function Page(pathname) {
 
         previousComponent = component;
     }
-}
+};
+
+Page.prototype.parseFilters = function (queryString) {
+    var query = queryString.match(/q=(.*?)(?:&|$)/);
+    query = query && query.length > 1 ? query[1] : '';
+
+    return decodeURIComponent(query)
+        .replace(/(".*?)\+(.*?")/g, '$1 $2')
+        .split('+')
+        .map(function (pair) {
+            pair = pair.split(':');
+            return [pair.shift(), pair.join(':').replace(/"/g, '')];
+        })
+        .reduce(function (memo, pair) {
+            var key = pair[0],
+                value = pair[1];
+
+            if (key === '' || value === '') {
+                return memo;
+            }
+
+            if (!(key in memo)) {
+                memo[key] = new Set();
+            }
+            memo[key].add(value);
+            return memo;
+        }, {});
+};
 
 Page.prototype.fetchPullRequests = function () {
     var headers = {

@@ -6,8 +6,10 @@ var colors = require('./colors');
 
 function Histogram(page) {
     colors.reset();
-    this.people = Object.keys(page.graph.people).map(function (id) {
-        return page.graph.people[id];
+
+    var graph = page.graphWithFilters();
+    this.people = Object.keys(graph.people).map(function (id) {
+        return graph.people[id];
     }).filter(function (person) {
         return person.assigned.length > 0;
     }).sort(function (a, b) {
@@ -16,7 +18,7 @@ function Histogram(page) {
     this.totalAssigned = this.people.reduce(function (memo, person) {
         return memo + person.assigned.length;
     }, 0);
-    this.totalPullRequests = Object.keys(page.graph.pullRequests).length;
+    this.totalPullRequests = Object.keys(graph.pullRequests).length;
     this.url = '/' + page.owner + '/' + page.repository + '/pulls';
 
     this.container = this.createContainer();
