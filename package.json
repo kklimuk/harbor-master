@@ -1,6 +1,6 @@
 {
   "name": "harbor-master",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Check out who has the pull requests, and who should have pull requests.",
   "main": "index.js",
   "scripts": {
